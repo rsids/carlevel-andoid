@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">Car Level</string>
+    <string name="title_home">Home</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_notifications">Notifications</string>
+
+    <string name="no_required_permission">Bluetooth toegang geweigerd</string>
+    <string name="error_bluetooth_not_supported">Bluetooth niet ingeschakeld</string>
+    <string name="ble_not_supported">Bluetooth LE niet ingeschakeld</string>
+
+    <string name="title_level">Waterpas</string>
+    <string name="title_incline">Stijgingspercentage</string>
+    <string name="title_config">Instellingen</string>
+    <string name="incline_sign">Incline Sign</string>
+    <string name="offset_x">Offset X</string>
+    <string name="offset_y">Offset Y</string>
+    <string name="set_offset">Set offset</string>
+    <string name="offset">Offset</string>
+    <string name="bluetooth">Bluetooth</string>
+    <string name="bluetooth_not_connected">Bluetooth not connected</string>
+    <string name="search">Search</string>
+</resources>

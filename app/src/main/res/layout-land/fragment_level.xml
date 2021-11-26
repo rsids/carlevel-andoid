@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/carbon_background"
+    app:layout_insetEdge="top"
+    tools:context=".ui.level.LevelFragment">
+
+    <ImageView
+        android:id="@+id/imgDialY"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="68dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="16dp"
+        android:scaleType="fitCenter"
+        app:layout_constraintEnd_toStartOf="@+id/imgDialX"
+        app:layout_constraintDimensionRatio="1"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+
+        app:srcCompat="@drawable/level_dial" />
+
+    <ImageView
+        android:id="@+id/imgLevelY"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:scaleType="fitCenter"
+        app:layout_constraintBottom_toBottomOf="@+id/imgDialY"
+        app:layout_constraintEnd_toEndOf="@+id/imgDialY"
+        app:layout_constraintStart_toStartOf="@+id/imgDialY"
+        app:layout_constraintTop_toTopOf="@+id/imgDialY"
+        app:srcCompat="@drawable/level_y" />
+
+    <TextView
+        android:id="@+id/txtLevelY"
+        android:layout_width="226dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="0º"
+        android:textAlignment="center"
+        android:textColor="@color/white"
+        android:textSize="20sp"
+        app:layout_constraintBottom_toBottomOf="@+id/imgDialY"
+        app:layout_constraintEnd_toEndOf="@+id/imgDialY"
+        app:layout_constraintHorizontal_bias="0.497"
+        app:layout_constraintStart_toStartOf="@+id/imgDialY"
+        app:layout_constraintTop_toTopOf="@+id/imgDialY"
+        app:layout_constraintVertical_bias="0.86" />
+
+    <ImageView
+        android:id="@+id/imgDialX"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginBottom="68dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:scaleType="fitCenter"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintDimensionRatio="1"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintVertical_bias="0.5"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/imgDialY"
+        app:srcCompat="@drawable/level_dial" />
+
+    <ImageView
+        android:id="@+id/imgLevelX"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="0dp"
+        android:layout_marginTop="0dp"
+        android:layout_marginEnd="0dp"
+        android:layout_marginBottom="0dp"
+        android:scaleType="fitCenter"
+        app:layout_constraintBottom_toBottomOf="@+id/imgDialX"
+        app:layout_constraintEnd_toEndOf="@+id/imgDialX"
+        app:layout_constraintStart_toStartOf="@+id/imgDialX"
+        app:layout_constraintTop_toTopOf="@+id/imgDialX"
+        app:srcCompat="@drawable/level_x" />
+
+    <TextView
+        android:id="@+id/txtLevelX"
+        android:layout_width="226dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="0º"
+        android:textAlignment="center"
+        android:textColor="@color/white"
+        android:textSize="20sp"
+        app:layout_constraintBottom_toBottomOf="@+id/imgDialX"
+        app:layout_constraintEnd_toEndOf="@+id/imgDialX"
+        app:layout_constraintHorizontal_bias="0.497"
+        app:layout_constraintStart_toStartOf="@+id/imgDialX"
+        app:layout_constraintTop_toTopOf="@+id/imgDialX"
+        app:layout_constraintVertical_bias="0.86" />
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

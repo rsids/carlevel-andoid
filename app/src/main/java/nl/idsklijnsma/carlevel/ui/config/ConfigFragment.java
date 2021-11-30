@@ -1,10 +1,9 @@
 package nl.idsklijnsma.carlevel.ui.config;
 
-import android.bluetooth.BluetoothDevice;
 import android.content.Context;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbManager;
 import android.os.Bundle;
-import android.util.Log;
-import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,33 +11,31 @@ import android.widget.Button;
 import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.util.LinkedList;
-import java.util.List;
+import com.hoho.android.usbserial.driver.UsbSerialDriver;
+import com.hoho.android.usbserial.driver.UsbSerialProber;
 
-import nl.idsklijnsma.carlevel.BluetoothDeviceListAdapter;
-import nl.idsklijnsma.carlevel.StartScanListener;
+import java.util.ArrayList;
+
 import nl.idsklijnsma.carlevel.UIViewModel;
+import nl.idsklijnsma.carlevel.UsbDeviceListAdapter;
 import nl.idsklijnsma.carlevel.databinding.FragmentConfigBinding;
+import nl.idsklijnsma.carlevel.models.UsbItem;
 
-public class ConfigFragment extends Fragment implements BluetoothDeviceListAdapter.OnDeviceSelectListener {
+public class ConfigFragment extends Fragment implements UsbDeviceListAdapter.OnDeviceSelectListener {
 
     private ConfigViewModel configViewModel;
     private UIViewModel uiViewModel;
     private FragmentConfigBinding binding;
 
-    private ProgressBar mProgress;
     private RecyclerView mRecyclerView;
-    private BluetoothDeviceListAdapter mAdapter;
+    private UsbDeviceListAdapter mAdapter;
 
-    private StartScanListener startScanListener;
-    private List<BluetoothDevice> mDevices;
+    private final ArrayList<UsbItem> listItems = new ArrayList<>();
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -48,17 +45,15 @@ public class ConfigFragment extends Fragment implements BluetoothDeviceListAdapt
 
         binding = FragmentConfigBinding.inflate(inflater, container, false);
 
-        mProgress = binding.progressBar;
         mRecyclerView = binding.listBluetooth;
         mRecyclerView.setHasFixedSize(false);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this.getContext()));
-        mDevices = new LinkedList<>();
-        mAdapter = new BluetoothDeviceListAdapter(mDevices, this);
+        mAdapter = new UsbDeviceListAdapter(listItems, this);
         mRecyclerView.setAdapter(mAdapter);
         View root = binding.getRoot();
 
         Button searchBtn = binding.btnSearch;
-        searchBtn.setOnClickListener(v -> startScanListener.startScanning());
+        searchBtn.setOnClickListener(v -> scanDevices());
 
 //        final TextView textView = binding.textNotifications;
 //        configViewModel.getText().observe(getViewLifecycleOwner(), new Observer<String>() {
@@ -68,20 +63,20 @@ public class ConfigFragment extends Fragment implements BluetoothDeviceListAdapt
 //            }
 //        });
 
-        configViewModel.deviceAdded().observe(getViewLifecycleOwner(), s -> {
-            mDevices.add(s);
-            mAdapter.notifyItemInserted(mDevices.size() - 1);
-        });
-        configViewModel.isScanning().observe(getViewLifecycleOwner(), isScanning -> {
-            if (isScanning) {
-                int l = mDevices.size();
-                if (l > 0) {
-                    mDevices.clear();
-                    mAdapter.notifyItemRangeRemoved(0, l);
-                }
-            }
-            mProgress.setVisibility(isScanning ? View.VISIBLE : View.INVISIBLE);
-        });
+//        configViewModel.deviceAdded().observe(getViewLifecycleOwner(), s -> {
+//            mDevices.add(s);
+//            mAdapter.notifyItemInserted(mDevices.size() - 1);
+//        });
+//        configViewModel.isScanning().observe(getViewLifecycleOwner(), isScanning -> {
+//            if (isScanning) {
+//                int l = mDevices.size();
+//                if (l > 0) {
+//                    mDevices.clear();
+//                    mAdapter.notifyItemRangeRemoved(0, l);
+//                }
+//            }
+//            mProgress.setVisibility(isScanning ? View.VISIBLE : View.INVISIBLE);
+//        });
         uiViewModel.setActiveView(UIViewModel.CONFIG);
         return root;
     }
@@ -89,11 +84,11 @@ public class ConfigFragment extends Fragment implements BluetoothDeviceListAdapt
     @Override
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
-        try {
-            startScanListener = (StartScanListener) context;
-        } catch (ClassCastException castException) {
-            // nothing
-        }
+//        try {
+//            startScanListener = (StartScanListener) context;
+//        } catch (ClassCastException castException) {
+//            // nothing
+//        }
     }
 
     @Override
@@ -104,6 +99,22 @@ public class ConfigFragment extends Fragment implements BluetoothDeviceListAdapt
 
     @Override
     public void onDeviceSelect(int position) {
-        configViewModel.selectDevice(mDevices.get(position));
+        configViewModel.selectDevice(listItems.get(position));
+    }
+
+    void scanDevices() {
+        UsbManager usbManager = (UsbManager) getActivity().getSystemService(Context.USB_SERVICE);
+        UsbSerialProber usbDefaultProber = UsbSerialProber.getDefaultProber();
+        listItems.clear();
+        for (UsbDevice device : usbManager.getDeviceList().values()) {
+            UsbSerialDriver driver = usbDefaultProber.probeDevice(device);
+            if (driver != null) {
+                for (int port = 0; port < driver.getPorts().size(); port++)
+                    listItems.add(new UsbItem(device, port, driver));
+            } else {
+                listItems.add(new UsbItem(device, 0, null));
+            }
+            mAdapter.notifyItemInserted(listItems.size() - 1);
+        }
     }
 }

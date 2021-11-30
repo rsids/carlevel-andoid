@@ -1,7 +1,6 @@
 package nl.idsklijnsma.carlevel.ui.incline;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -48,9 +47,9 @@ public class InclineFragment extends Fragment {
         mBinding = null;
     }
 
-    private void setPipMode(Boolean isPip ) {
-        ActionBar actionBar = ((AppCompatActivity)getActivity()).getSupportActionBar();
-        if(isPip) {
+    private void setPipMode(Boolean isPip) {
+        ActionBar actionBar = ((AppCompatActivity) getActivity()).getSupportActionBar();
+        if (isPip) {
             actionBar.hide();
         } else {
             actionBar.show();

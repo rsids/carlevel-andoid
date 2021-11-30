@@ -24,10 +24,10 @@ public class LevelViewModel extends ViewModel {
     }
 
     public void setLevelX(Float val) {
-        mLevelX.setValue(val);
+        mLevelX.postValue(val);
     }
 
     public void setLevelY(Float val) {
-        mLevelY.setValue(val);
+        mLevelY.postValue(val);
     }
 }

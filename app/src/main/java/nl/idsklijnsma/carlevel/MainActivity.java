@@ -1,71 +1,92 @@
 package nl.idsklijnsma.carlevel;
 
-import android.Manifest;
+import android.app.PendingIntent;
 import android.app.PictureInPictureParams;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothGattCallback;
-import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattDescriptor;
-import android.bluetooth.BluetoothManager;
-import android.bluetooth.BluetoothProfile;
-import android.bluetooth.le.BluetoothLeScanner;
-import android.bluetooth.le.ScanCallback;
-import android.bluetooth.le.ScanResult;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbDeviceConnection;
+import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.Message;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.util.Rational;
+import android.view.View;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
-import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.hoho.android.usbserial.driver.UsbSerialDriver;
+import com.hoho.android.usbserial.driver.UsbSerialPort;
+import com.hoho.android.usbserial.driver.UsbSerialProber;
+import com.hoho.android.usbserial.util.SerialInputOutputManager;
 
-import java.util.UUID;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.util.EnumSet;
 
 import nl.idsklijnsma.carlevel.databinding.ActivityMainBinding;
+import nl.idsklijnsma.carlevel.models.UsbItem;
 import nl.idsklijnsma.carlevel.ui.config.ConfigViewModel;
 import nl.idsklijnsma.carlevel.ui.level.LevelViewModel;
 
-public class MainActivity extends AppCompatActivity implements StartScanListener {
+public class MainActivity extends AppCompatActivity implements SerialInputOutputManager.Listener {
+    private final ByteBuffer res = ByteBuffer.allocate(15);
+    @Override
+    public void onNewData(byte[] data) {
+        for(int i = 0; i < data.length; i++) {
+            if(!res.hasRemaining()) {
+                try {
+                    String value = new String(res.array(), "utf-8").trim();
+                    updateLevelValue(value);
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+                res.clear();
+            }
+            res.put(data[i]);
+        }
+
+    }
+
+    @Override
+    public void onRunError(Exception e) {
+
+    }
+
+    private enum UsbPermission {Unknown, Requested, Granted, Denied}
 
     private ActivityMainBinding binding;
     private UIViewModel uiViewModel;
     private LevelViewModel levelViewModel;
     private ConfigViewModel configViewModel;
+    private BroadcastReceiver broadcastReceiver;
+    private int deviceId, portNum, baudRate;
+    private boolean withIoManager = true;
+    private boolean connected = false;
+
+    private Handler mainLooper;
+    private ControlLines controlLines;
+    private SerialInputOutputManager usbIoManager;
+    private UsbSerialPort usbSerialPort;
+    private UsbPermission usbPermission = UsbPermission.Unknown;
 
     private NavController mNavController;
+    private static final String INTENT_ACTION_GRANT_USB = BuildConfig.APPLICATION_ID + ".GRANT_USB";
 
-    private static final String TAG = "CarLevel";
-    private static final UUID LEVEL_SERVICE = UUID.fromString("ac159216-381a-11ec-8d3d-0242ac130003");
-    private static final UUID LEVEL_CHAR = UUID.fromString("b08cd61a-381a-11ec-8d3d-0242ac130003");
-    private static final UUID LEVEL_DESC = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
-
-    private static final int REQUEST_ENABLE_BT = 1;
-    private static final int REQUEST_PERMISSION_REQ_CODE = 2;
-
-    private BluetoothAdapter mBluetoothAdapter;
-    //    private SparseArray<BluetoothDevice> mDevices;
-    private BluetoothDevice mDevice;
-
-    private BluetoothGatt mConnectedGatt;
-    private BluetoothLeScanner mBluetoothLeScanner;
+    private static final String TAG = "CarLevelUSB";
 
     private int mActiveView = UIViewModel.LEVEL;
 
@@ -76,12 +97,27 @@ public class MainActivity extends AppCompatActivity implements StartScanListener
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        broadcastReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (INTENT_ACTION_GRANT_USB.equals(intent.getAction())) {
+                    usbPermission = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
+                            ? UsbPermission.Granted : UsbPermission.Denied;
+                    connect();
+                }
+            }
+        };
+
+        mainLooper = new Handler(Looper.getMainLooper());
+        baudRate = 115200;
+        controlLines = new ControlLines(binding.getRoot());
+
         uiViewModel = new ViewModelProvider(this).get(UIViewModel.class);
         levelViewModel = new ViewModelProvider(this).get(LevelViewModel.class);
         configViewModel = new ViewModelProvider(this).get(ConfigViewModel.class);
         uiViewModel.getActiveView().observe(this, s -> mActiveView = s);
+        configViewModel.selectedDevice().observe(this, s -> setSelectedDevice(s));
 
-        BottomNavigationView navView = findViewById(R.id.nav_view);
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
         AppBarConfiguration appBarConfiguration = new AppBarConfiguration.Builder(
@@ -92,80 +128,145 @@ public class MainActivity extends AppCompatActivity implements StartScanListener
         NavigationUI.setupActionBarWithNavController(this, mNavController, appBarConfiguration);
         NavigationUI.setupWithNavController(binding.navView, mNavController);
 
-        // Initializes a Bluetooth adapter. For API level 18 and above, get a reference to
-        // BluetoothAdapter through BluetoothManager.
-        final BluetoothManager bluetoothManager =
-                (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-        mBluetoothAdapter = bluetoothManager.getAdapter();
-        mBluetoothLeScanner = mBluetoothAdapter.getBluetoothLeScanner();
-
-        // Checks if Bluetooth is supported on the device.
-        if (mBluetoothAdapter == null) {
-            Toast.makeText(this, R.string.error_bluetooth_not_supported, Toast.LENGTH_SHORT).show();
-            finish();
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        if (prefs.contains("device")) {
+            connect();
         }
+//        try {
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+    }
 
-        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
-            Toast.makeText(this, R.string.ble_not_supported, Toast.LENGTH_SHORT).show();
-            finish();
+//    private void connectUsb() throws IOException {
+//        UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
+//        List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
+//        if (availableDrivers.isEmpty()) {
+//            return;
+//        }
+//
+//        // Open a connection to the first available driver.
+//        UsbSerialDriver driver = availableDrivers.get(0);
+//        UsbDeviceConnection connection;
+//        try {
+//            connection = manager.openDevice(driver.getDevice());
+//        } catch (SecurityException e) {
+//            Log.d(TAG, "Cannot connect " + e.getMessage());
+//            return;
+//        }
+//        if (connection == null) {
+//            // add UsbManager.requestPermission(driver.getDevice(), ..) handling here
+//            return;
+//        }
+//
+//        UsbSerialPort port = driver.getPorts().get(0); // Most devices have just one port (port 0)
+//        port.open(connection);
+//        port.setParameters(115200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+//    }
+
+    /**
+     * Sets & stores the selected usb device
+     *
+     * @param item
+     */
+    private void setSelectedDevice(UsbItem item) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        prefs.edit()
+                .putInt("port", item.port)
+                .putInt("device", item.device.getDeviceId())
+                .apply();
+        connect();
+    }
+
+    private void connect() {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        deviceId = prefs.getInt("device", 0);
+        portNum = prefs.getInt("port", 0);
+        UsbDevice device = null;
+        UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        for (UsbDevice v : usbManager.getDeviceList().values())
+            if (v.getDeviceId() == deviceId)
+                device = v;
+        if (device == null) {
+            status("connection failed: device not found");
+            return;
+        }
+        UsbSerialDriver driver = UsbSerialProber.getDefaultProber().probeDevice(device);
+
+        if (driver == null) {
+            status("connection failed: no driver for device");
+            return;
+        }
+        if (driver.getPorts().size() < portNum) {
+            status("connection failed: not enough ports at device");
+            return;
+        }
+        usbSerialPort = driver.getPorts().get(portNum);
+        UsbDeviceConnection usbConnection = usbManager.openDevice(driver.getDevice());
+        if (usbConnection == null && usbPermission == UsbPermission.Unknown && !usbManager.hasPermission(driver.getDevice())) {
+            usbPermission = UsbPermission.Requested;
+            PendingIntent usbPermissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(INTENT_ACTION_GRANT_USB), 0);
+            usbManager.requestPermission(driver.getDevice(), usbPermissionIntent);
+            return;
+        }
+        if (usbConnection == null) {
+            if (!usbManager.hasPermission(driver.getDevice()))
+                status("connection failed: permission denied");
+            else
+                status("connection failed: open failed");
             return;
         }
 
-        configViewModel.selectedDevice().observe(this, s -> {
-            mDevice = s;
-            connect();
-        });
+        try {
+            usbSerialPort.open(usbConnection);
+            usbSerialPort.setParameters(baudRate, 8, 1, UsbSerialPort.PARITY_NONE);
+            if (withIoManager) {
+                usbIoManager = new SerialInputOutputManager(usbSerialPort, this);
+                usbIoManager.start();
+            }
+            status("connected");
+            connected = true;
+            controlLines.start();
+        } catch (Exception e) {
+            status("connection failed: " + e.getMessage());
+            disconnect();
+        }
     }
+
+    private void disconnect() {
+        connected = false;
+        controlLines.stop();
+        if (usbIoManager != null) {
+            usbIoManager.setListener(null);
+            usbIoManager.stop();
+        }
+        usbIoManager = null;
+        try {
+            usbSerialPort.close();
+        } catch (IOException ignored) {
+        }
+        usbSerialPort = null;
+    }
+
 
     @Override
     protected void onResume() {
         super.onResume();
+
+        registerReceiver(broadcastReceiver, new IntentFilter(INTENT_ACTION_GRANT_USB));
         clearValues();
-        // Ensures Bluetooth is enabled on the device.  If Bluetooth is not currently enabled,
-        // fire an intent to display a dialog asking the user to grant permission to enable it.
-        if (!mBluetoothAdapter.isEnabled()) {
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-        }
-
-        if (mDevice != null) {
-            connect();
-        }
-
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        mHandler.removeCallbacks(mStopRunnable);
-        mHandler.removeCallbacks(mStartRunnable);
-        mBluetoothLeScanner.stopScan(mLeCallback);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        if (mConnectedGatt != null) {
-            mConnectedGatt.disconnect();
-            mConnectedGatt = null;
-        }
     }
 
-    @Override
-    public void onRequestPermissionsResult(final int requestCode, final @NonNull String[] permissions, final @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        switch (requestCode) {
-            case REQUEST_PERMISSION_REQ_CODE: {
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // We have been granted the Manifest.permission.ACCESS_FINE_LOCATION permission. Now we may proceed with scanning.
-                    startScan();
-                } else {
-                    Toast.makeText(this, R.string.no_required_permission, Toast.LENGTH_SHORT).show();
-                }
-                break;
-            }
-        }
-    }
 
     @Override
     public void onUserLeaveHint() {
@@ -186,181 +287,122 @@ public class MainActivity extends AppCompatActivity implements StartScanListener
         uiViewModel.setIsPip(isInPictureInPictureMode);
     }
 
-    private Runnable mStopRunnable = this::stopScan;
-    private Runnable mStartRunnable = this::startScan;
-
-    private void startScan() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // When user pressed Deny and still wants to use this functionality, show the rationale
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION)) {
-                Log.d(TAG, "Explain why permission is needed");
-            } else {
-                Log.d(TAG, "request permission");
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_PERMISSION_REQ_CODE);
-            }
-
-            return;
-        } else {
-            Log.d(TAG, "checkSelfPermission not needed");
-        }
-        mBluetoothLeScanner.startScan(mLeCallback);
-        configViewModel.setScanning(true);
-        mHandler.postDelayed(mStopRunnable, 2500);
-    }
-
-    private void stopScan() {
-        mBluetoothLeScanner.stopScan(mLeCallback);
-        configViewModel.setScanning(false);
-    }
-
     private void clearValues() {
         levelViewModel.setLevelX(0f);
         levelViewModel.setLevelY(0f);
         Log.d(TAG, "clearValues");
     }
 
-    private void connect() {
-        Log.i(TAG, "Connecting to " + mDevice.getName());
-        mConnectedGatt = mDevice.connectGatt(this, true, mGattCallback, 2);
-        mHandler.sendMessage(Message.obtain(null, MSG_PROGRESS, "Connecting to " + mDevice.getName() + "..."));
-    }
-
-    // BT Callbacks
-    private final ScanCallback mLeCallback = new ScanCallback() {
-        @Override
-        public void onScanResult(int callbackType, ScanResult result) {
-            BluetoothDevice device = result.getDevice();
-            Log.i(TAG, "New LE Device: " + device.getName() + " / " + device.getAddress());
-//            if (DEVICE_NAME.equals(device.getName())) {
-            configViewModel.addDevice(device);
-//            }
-            super.onScanResult(callbackType, result);
-        }
-    };
-
-    private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
-
-        @Override
-        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-            // Todo: update
-            Log.d(TAG, "Connection state change: " + status + " -> " + newState);
-            if (status == BluetoothGatt.GATT_SUCCESS && newState == BluetoothProfile.STATE_CONNECTED) {
-                gatt.discoverServices();
-                mHandler.sendMessage(Message.obtain(null, MSG_PROGRESS, "Discovering services..."));
-            } else if (status == BluetoothGatt.GATT_SUCCESS && newState == BluetoothProfile.STATE_DISCONNECTED) {
-                mHandler.sendEmptyMessage(MSG_CLEAR);
-            } else if (status != BluetoothGatt.GATT_SUCCESS) {
-                gatt.disconnect();
-            }
-            super.onConnectionStateChange(gatt, status, newState);
-        }
-
-        @Override
-        public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-            Log.d(TAG, "onServicesDiscovered: " + status);
-            //reset();
-            //enableNextSensor();
-            readSensor(gatt);
-//            setNotifyNextSensor(gatt);
-            super.onServicesDiscovered(gatt, status);
-        }
-
-        @Override
-        public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-            Log.d(TAG, "onCharacteristicRead: " + status);
-            if (LEVEL_CHAR.equals(characteristic.getUuid())) {
-                // Read char
-                mHandler.sendMessage(Message.obtain(null, MSG_LEVEL, characteristic));
-            }
-            setNotifyNextSensor(gatt);
-            super.onCharacteristicRead(gatt, characteristic, status);
-        }
-
-        @Override
-        public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-            Log.d(TAG, "onCharacteristicWrite: " + status);
-            super.onCharacteristicWrite(gatt, characteristic, status);
-        }
-
-        @Override
-        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-            Log.d(TAG, "onCharacteristicChanged: ");
-            if (LEVEL_CHAR.equals(characteristic.getUuid())) {
-                // Read char
-                mHandler.sendMessage(Message.obtain(null, MSG_LEVEL, characteristic));
-            }
-            super.onCharacteristicChanged(gatt, characteristic);
-        }
-
-        private void readSensor(BluetoothGatt gatt) {
-            BluetoothGattCharacteristic characteristic = gatt.getService(LEVEL_SERVICE).getCharacteristic(LEVEL_CHAR);
-            gatt.setCharacteristicNotification(characteristic, true);
-            gatt.readCharacteristic(characteristic);
-        }
-
-        private void setNotifyNextSensor(BluetoothGatt gatt) {
-            Log.d(TAG, "setNotifyNextSensor level ");
-            BluetoothGattCharacteristic characteristic = gatt.getService(LEVEL_SERVICE).getCharacteristic(LEVEL_CHAR);
-            gatt.setCharacteristicNotification(characteristic, true);
-            BluetoothGattDescriptor desc = characteristic.getDescriptor(LEVEL_DESC);
-            desc.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-            gatt.writeDescriptor(desc);
-            mHandler.sendMessage(Message.obtain(null, MSG_DISMISS, "Setup complete..."));
-        }
-    };
-
-    private static final int MSG_LEVEL = 101;
-    private static final int MSG_PROGRESS = 201;
-    private static final int MSG_DISMISS = 202;
-    private static final int MSG_CLEAR = 301;
-    private Handler mHandler = new Handler(Looper.getMainLooper()) {
-
-        @Override
-        public void handleMessage(Message msg) {
-            BluetoothGattCharacteristic characteristic;
-            switch (msg.what) {
-                case MSG_LEVEL:
-                    characteristic = (BluetoothGattCharacteristic) msg.obj;
-                    if (characteristic.getValue() == null) {
-                        Log.w(TAG, "Error obtaining level value");
-                        return;
-                    }
-                    updateLevelValue(characteristic);
-                    break;
-                case MSG_PROGRESS:
-                    Log.d(TAG, "MSG_PROGRESS");
-                    configViewModel.setScanning(true);
-                    break;
-                case MSG_DISMISS:
-                    Log.d(TAG, "MSG_DISMISS");
-                    configViewModel.setScanning(false);
-                    //connected
-                    break;
-                case MSG_CLEAR:
-                    Log.d(TAG, "MSG_CLEAR");
-                    clearValues();
-                    break;
-
-            }
-        }
-
-    };
-
-    private void updateLevelValue(BluetoothGattCharacteristic characteristic) {
-        // Todo implement
-        String value = new String(characteristic.getValue());
+    private void updateLevelValue(String value) {
         String[] values = value.split(";");
         levelViewModel.setLevelX(Float.parseFloat(values[0]));
         levelViewModel.setLevelY(Float.parseFloat(values[1]));
-        Log.i(TAG, "updateLevelValue " + new String(characteristic.getValue()));
-
-        // Calc incline
-        //Math.tan(Float.parseFloat(values[0])) * 100;
+        Log.i(TAG, "updateLevelValue " + value);
     }
 
+
+//    private void updateLevelValue(BluetoothGattCharacteristic characteristic) {
+//        // Todo implement
+//        String value = new String(characteristic.getValue());
+//        String[] values = value.split(";");
+//        levelViewModel.setLevelX(Float.parseFloat(values[0]));
+//        levelViewModel.setLevelY(Float.parseFloat(values[1]));
+//        Log.i(TAG, "updateLevelValue " + new String(characteristic.getValue()));
+//
+//        // Calc incline
+//        //Math.tan(Float.parseFloat(values[0])) * 100;
+//    }
+
+
     @Override
-    public void startScanning() {
-        configViewModel.clearDevices();
-        startScan();
+    protected void onNewIntent(Intent intent) {
+        if ("android.hardware.usb.action.USB_DEVICE_ATTACHED".equals(intent.getAction())) {
+            Log.d(TAG, "ON INTENT");
+        }
+        super.onNewIntent(intent);
+    }
+
+    private void status(String s) {
+        Log.i(TAG, s);
+    }
+
+    class ControlLines {
+        private static final int refreshInterval = 200; // msec
+
+        private final Runnable runnable;
+//        private final ToggleButton rtsBtn, ctsBtn, dtrBtn, dsrBtn, cdBtn, riBtn;
+
+        ControlLines(View view) {
+            runnable = this::run; // w/o explicit Runnable, a new lambda would be created on each postDelayed, which would not be found again by removeCallbacks
+
+//            rtsBtn = view.findViewById(R.id.controlLineRts);
+//            ctsBtn = view.findViewById(R.id.controlLineCts);
+//            dtrBtn = view.findViewById(R.id.controlLineDtr);
+//            dsrBtn = view.findViewById(R.id.controlLineDsr);
+//            cdBtn = view.findViewById(R.id.controlLineCd);
+//            riBtn = view.findViewById(R.id.controlLineRi);
+//            rtsBtn.setOnClickListener(this::toggle);
+//            dtrBtn.setOnClickListener(this::toggle);
+        }
+
+        private void toggle(View v) {
+//            ToggleButton btn = (ToggleButton) v;
+//            if (!connected) {
+//                btn.setChecked(!btn.isChecked());
+//                Toast.makeText(getActivity(), "not connected", Toast.LENGTH_SHORT).show();
+//                return;
+//            }
+//            String ctrl = "";
+//            try {
+//                if (btn.equals(rtsBtn)) { ctrl = "RTS"; usbSerialPort.setRTS(btn.isChecked()); }
+//                if (btn.equals(dtrBtn)) { ctrl = "DTR"; usbSerialPort.setDTR(btn.isChecked()); }
+//            } catch (IOException e) {
+//                status("set" + ctrl + "() failed: " + e.getMessage());
+//            }
+        }
+
+        private void run() {
+            if (!connected)
+                return;
+            try {
+                EnumSet<UsbSerialPort.ControlLine> controlLines = usbSerialPort.getControlLines();
+//                rtsBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.RTS));
+//                ctsBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.CTS));
+//                dtrBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.DTR));
+//                dsrBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.DSR));
+//                cdBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.CD));
+//                riBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.RI));
+                mainLooper.postDelayed(runnable, refreshInterval);
+            } catch (IOException e) {
+                status("getControlLines() failed: " + e.getMessage() + " -> stopped control line refresh");
+            }
+        }
+
+        void start() {
+            if (!connected)
+                return;
+            try {
+                EnumSet<UsbSerialPort.ControlLine> controlLines = usbSerialPort.getSupportedControlLines();
+//                if (!controlLines.contains(UsbSerialPort.ControlLine.RTS)) rtsBtn.setVisibility(View.INVISIBLE);
+//                if (!controlLines.contains(UsbSerialPort.ControlLine.CTS)) ctsBtn.setVisibility(View.INVISIBLE);
+//                if (!controlLines.contains(UsbSerialPort.ControlLine.DTR)) dtrBtn.setVisibility(View.INVISIBLE);
+//                if (!controlLines.contains(UsbSerialPort.ControlLine.DSR)) dsrBtn.setVisibility(View.INVISIBLE);
+//                if (!controlLines.contains(UsbSerialPort.ControlLine.CD))   cdBtn.setVisibility(View.INVISIBLE);
+//                if (!controlLines.contains(UsbSerialPort.ControlLine.RI))   riBtn.setVisibility(View.INVISIBLE);
+                run();
+            } catch (IOException e) {
+                Toast.makeText(getApplicationContext(), "getSupportedControlLines() failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        }
+
+        void stop() {
+            mainLooper.removeCallbacks(runnable);
+//            rtsBtn.setChecked(false);
+//            ctsBtn.setChecked(false);
+//            dtrBtn.setChecked(false);
+//            dsrBtn.setChecked(false);
+//            cdBtn.setChecked(false);
+//            riBtn.setChecked(false);
+        }
     }
 }

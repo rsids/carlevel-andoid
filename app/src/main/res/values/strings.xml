@@ -17,6 +17,7 @@
     <string name="set_offset">Set offset</string>
     <string name="offset">Offset</string>
     <string name="bluetooth">Bluetooth</string>
+    <string name="device">Device</string>
     <string name="bluetooth_not_connected">Bluetooth not connected</string>
     <string name="search">Search</string>
 </resources>

@@ -17,20 +17,20 @@ import nl.idsklijnsma.carlevel.databinding.FragmentLevelBinding;
 
 public class LevelFragment extends Fragment {
 
-    private LevelViewModel levelViewModel;
-    private UIViewModel uiViewModel;
     private FragmentLevelBinding mBinding;
     private TextView mTextViewY;
     private TextView mTextViewX;
     private ImageView mImgLevelX;
     private ImageView mImgLevelY;
 
+    private float offsetX = 0;
+    private float offsetY = 0;
+
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        levelViewModel =
-                new ViewModelProvider(requireActivity()).get(LevelViewModel.class);
+        LevelViewModel levelViewModel = new ViewModelProvider(requireActivity()).get(LevelViewModel.class);
 
-        uiViewModel = new ViewModelProvider(requireActivity()).get(UIViewModel.class);
+        UIViewModel uiViewModel = new ViewModelProvider(requireActivity()).get(UIViewModel.class);
 
         mBinding = FragmentLevelBinding.inflate(inflater, container, false);
         View root = mBinding.getRoot();
@@ -38,8 +38,10 @@ public class LevelFragment extends Fragment {
         mTextViewY = mBinding.txtLevelY;
         mImgLevelX = mBinding.imgLevelX;
         mImgLevelY = mBinding.imgLevelY;
-        levelViewModel.getLevelX().observe(getViewLifecycleOwner(), s -> setLevelX(s));
-        levelViewModel.getLevelY().observe(getViewLifecycleOwner(), s -> setLevelY(s));
+        levelViewModel.getLevelX().observe(getViewLifecycleOwner(), this::setLevelX);
+        levelViewModel.getLevelY().observe(getViewLifecycleOwner(), this::setLevelY);
+        levelViewModel.getOffsetX().observe(getViewLifecycleOwner(), s -> offsetX = s);
+        levelViewModel.getOffsetY().observe(getViewLifecycleOwner(), s -> offsetY = s);
         uiViewModel.setActiveView(UIViewModel.LEVEL);
         Log.d("CARLVL", "onCreateView Level");
         return root;
@@ -52,14 +54,14 @@ public class LevelFragment extends Fragment {
     }
 
     private void setLevelX(Float value) {
-        float formatted = value < 180 ? value : value - 360;
+        float formatted = (value < 180 ? value : value - 360) - offsetX;
         mTextViewX.setText(String.format("%.0fº", formatted));
-        mImgLevelX.setRotation(value);
+        mImgLevelX.setRotation(value - offsetX);
     }
 
     private void setLevelY(Float value) {
-        float formatted = value < 180 ? value : value - 360;
+        float formatted = (value < 180 ? value : value - 360) - offsetY;
         mTextViewY.setText(String.format("%.0fº", formatted));
-        mImgLevelY.setRotation(value);
+        mImgLevelY.setRotation(value - offsetY);
     }
 }

@@ -16,8 +16,8 @@ import nl.idsklijnsma.carlevel.models.UsbItem;
 public class UsbDeviceListAdapter extends RecyclerView.Adapter<UsbDeviceListAdapter.ViewHolder> {
     private static final String TAG = "UsbDeviceListAdapter";
 
-    private List<UsbItem> mDevices;
-    private OnDeviceSelectListener mOnDeviceSelectListener;
+    private final List<UsbItem> mDevices;
+    private final OnDeviceSelectListener mOnDeviceSelectListener;
 
     // BEGIN_INCLUDE(recyclerViewSampleViewHolder)
     /**
@@ -53,7 +53,7 @@ public class UsbDeviceListAdapter extends RecyclerView.Adapter<UsbDeviceListAdap
     public ViewHolder onCreateViewHolder(ViewGroup viewGroup, int viewType) {
         // Create a new view.
         View v = LayoutInflater.from(viewGroup.getContext())
-                .inflate(R.layout.bluetooth_menu_item, viewGroup, false);
+                .inflate(R.layout.usb_menu_item, viewGroup, false);
 
         return new ViewHolder(v, mOnDeviceSelectListener);
     }
@@ -65,7 +65,11 @@ public class UsbDeviceListAdapter extends RecyclerView.Adapter<UsbDeviceListAdap
         // Get element from your dataset at this position and replace the contents of the view
         // with that element
         UsbItem item = mDevices.get(position);
-        holder.getTextView().setText(item.driver.getClass().getSimpleName());
+        if(item.driver != null) {
+            holder.getTextView().setText(item.driver.getClass().getSimpleName());
+        } else {
+            holder.getTextView().setText(R.string.unknown_device);
+        }
     }
 
     // Return the size of your dataset (invoked by the layout manager)

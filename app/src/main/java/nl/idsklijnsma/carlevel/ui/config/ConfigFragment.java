@@ -1,14 +1,16 @@
 package nl.idsklijnsma.carlevel.ui.config;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -16,6 +18,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.textfield.TextInputEditText;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
 
@@ -25,15 +28,19 @@ import nl.idsklijnsma.carlevel.UIViewModel;
 import nl.idsklijnsma.carlevel.UsbDeviceListAdapter;
 import nl.idsklijnsma.carlevel.databinding.FragmentConfigBinding;
 import nl.idsklijnsma.carlevel.models.UsbItem;
+import nl.idsklijnsma.carlevel.ui.level.LevelViewModel;
 
 public class ConfigFragment extends Fragment implements UsbDeviceListAdapter.OnDeviceSelectListener {
 
     private ConfigViewModel configViewModel;
-    private UIViewModel uiViewModel;
     private FragmentConfigBinding binding;
+    private LevelViewModel levelViewModel;
 
-    private RecyclerView mRecyclerView;
     private UsbDeviceListAdapter mAdapter;
+    private TextView mTextViewY;
+    private TextView mTextViewX;
+    private TextInputEditText mInputOffsetX;
+    private TextInputEditText mInputOffsetY;
 
     private final ArrayList<UsbItem> listItems = new ArrayList<>();
 
@@ -41,42 +48,29 @@ public class ConfigFragment extends Fragment implements UsbDeviceListAdapter.OnD
                              ViewGroup container, Bundle savedInstanceState) {
         configViewModel =
                 new ViewModelProvider(requireActivity()).get(ConfigViewModel.class);
-        uiViewModel = new ViewModelProvider(requireActivity()).get(UIViewModel.class);
+        UIViewModel uiViewModel = new ViewModelProvider(requireActivity()).get(UIViewModel.class);
+
+        levelViewModel =
+                new ViewModelProvider(requireActivity()).get(LevelViewModel.class);
+        levelViewModel.getLevelX().observe(getViewLifecycleOwner(), this::setLevelX);
+        levelViewModel.getLevelY().observe(getViewLifecycleOwner(), this::setLevelY);
 
         binding = FragmentConfigBinding.inflate(inflater, container, false);
-
-        mRecyclerView = binding.listBluetooth;
+        mTextViewX = binding.txtLevelX;
+        mInputOffsetX = binding.inputOffsetX;
+        mTextViewY = binding.txtLevelY;
+        mInputOffsetY = binding.inputOffsetY;
+        RecyclerView mRecyclerView = binding.listDevices;
         mRecyclerView.setHasFixedSize(false);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this.getContext()));
         mAdapter = new UsbDeviceListAdapter(listItems, this);
         mRecyclerView.setAdapter(mAdapter);
         View root = binding.getRoot();
 
+        Button offsetBtn = binding.btnZero;
         Button searchBtn = binding.btnSearch;
         searchBtn.setOnClickListener(v -> scanDevices());
-
-//        final TextView textView = binding.textNotifications;
-//        configViewModel.getText().observe(getViewLifecycleOwner(), new Observer<String>() {
-//            @Override
-//            public void onChanged(@Nullable String s) {
-//                textView.setText(s);
-//            }
-//        });
-
-//        configViewModel.deviceAdded().observe(getViewLifecycleOwner(), s -> {
-//            mDevices.add(s);
-//            mAdapter.notifyItemInserted(mDevices.size() - 1);
-//        });
-//        configViewModel.isScanning().observe(getViewLifecycleOwner(), isScanning -> {
-//            if (isScanning) {
-//                int l = mDevices.size();
-//                if (l > 0) {
-//                    mDevices.clear();
-//                    mAdapter.notifyItemRangeRemoved(0, l);
-//                }
-//            }
-//            mProgress.setVisibility(isScanning ? View.VISIBLE : View.INVISIBLE);
-//        });
+        offsetBtn.setOnClickListener(v -> setOffset());
         uiViewModel.setActiveView(UIViewModel.CONFIG);
         return root;
     }
@@ -84,11 +78,6 @@ public class ConfigFragment extends Fragment implements UsbDeviceListAdapter.OnD
     @Override
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
-//        try {
-//            startScanListener = (StartScanListener) context;
-//        } catch (ClassCastException castException) {
-//            // nothing
-//        }
     }
 
     @Override
@@ -114,7 +103,27 @@ public class ConfigFragment extends Fragment implements UsbDeviceListAdapter.OnD
             } else {
                 listItems.add(new UsbItem(device, 0, null));
             }
-            mAdapter.notifyItemInserted(listItems.size() - 1);
         }
+        mAdapter.notifyDataSetChanged();
+    }
+
+    void setOffset() {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
+        prefs.edit()
+                .putInt("offsetX", Integer.parseInt(mInputOffsetX.getText().toString()))
+                .putInt("offsetY", Integer.parseInt(mInputOffsetY.getText().toString()))
+                .apply();
+        levelViewModel.setOffsetX((float) prefs.getInt("offsetX", 0));
+        levelViewModel.setOffsetY((float) prefs.getInt("offsetY", 0));
+    }
+
+    private void setLevelX(Float value) {
+        float formatted = value < 180 ? value : value - 360;
+        mTextViewX.setText(String.format("%.0fº", formatted));
+    }
+
+    private void setLevelY(Float value) {
+        float formatted = value < 180 ? value : value - 360;
+        mTextViewY.setText(String.format("%.0fº", formatted));
     }
 }

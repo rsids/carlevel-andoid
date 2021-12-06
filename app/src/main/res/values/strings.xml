@@ -20,4 +20,5 @@
     <string name="device">Device</string>
     <string name="bluetooth_not_connected">Bluetooth not connected</string>
     <string name="search">Search</string>
+    <string name="unknown_device">Unknown USB Device</string>
 </resources>

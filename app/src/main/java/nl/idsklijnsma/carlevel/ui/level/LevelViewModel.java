@@ -6,48 +6,48 @@ import androidx.lifecycle.ViewModel;
 
 public class LevelViewModel extends ViewModel {
 
-    private final MutableLiveData<Float> mLevelX;
-    private final MutableLiveData<Float> mLevelY;
+    private final MutableLiveData<Integer> mLevelX;
+    private final MutableLiveData<Integer> mLevelY;
 
-    private final MutableLiveData<Float> mOffsetX;
-    private final MutableLiveData<Float> mOffsetY;
+    private final MutableLiveData<Integer> mOffsetX;
+    private final MutableLiveData<Integer> mOffsetY;
 
     public LevelViewModel() {
         mLevelX = new MutableLiveData<>();
-        mLevelX.setValue(0f);
+        mLevelX.setValue(0);
         mLevelY = new MutableLiveData<>();
-        mLevelY.setValue(10f);
+        mLevelY.setValue(0);
         mOffsetX = new MutableLiveData<>();
-        mOffsetX.setValue(0f);
+        mOffsetX.setValue(0);
         mOffsetY = new MutableLiveData<>();
-        mOffsetY.setValue(10f);
+        mOffsetY.setValue(0);
     }
 
-    public LiveData<Float> getLevelX() {
+    public LiveData<Integer> getLevelX() {
         return mLevelX;
     }
-    public LiveData<Float> getLevelY() {
+    public LiveData<Integer> getLevelY() {
         return mLevelY;
     }
 
-    public void setLevelX(Float val) {
+    public void setLevelX(Integer val) {
         mLevelX.postValue(val);
     }
-    public void setLevelY(Float val) {
+    public void setLevelY(Integer val) {
         mLevelY.postValue(val);
     }
 
-    public LiveData<Float> getOffsetX() {
+    public LiveData<Integer> getOffsetX() {
         return mOffsetX;
     }
-    public LiveData<Float> getOffsetY() {
+    public LiveData<Integer> getOffsetY() {
         return mOffsetY;
     }
 
-    public void setOffsetX(Float val) {
+    public void setOffsetX(Integer val) {
         mOffsetX.postValue(val);
     }
-    public void setOffsetY(Float val) {
+    public void setOffsetY(Integer val) {
         mOffsetY.postValue(val);
     }
 }

@@ -10,7 +10,7 @@ public class InclineViewModel extends ViewModel {
 
     public InclineViewModel() {
         mIncline = new MutableLiveData<>();
-        mIncline.setValue("24");
+        mIncline.setValue("0");
     }
 
     public LiveData<String> getIncline() {
@@ -18,6 +18,6 @@ public class InclineViewModel extends ViewModel {
     }
 
     public void setIncline(String val) {
-        mIncline.setValue(val);
+        mIncline.postValue(val);
     }
 }

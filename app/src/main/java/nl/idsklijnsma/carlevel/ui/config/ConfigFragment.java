@@ -42,6 +42,8 @@ public class ConfigFragment extends Fragment implements UsbDeviceListAdapter.OnD
     private TextInputEditText mInputOffsetX;
     private TextInputEditText mInputOffsetY;
 
+    private SharedPreferences mPrefs;
+
     private final ArrayList<UsbItem> listItems = new ArrayList<>();
 
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -49,7 +51,7 @@ public class ConfigFragment extends Fragment implements UsbDeviceListAdapter.OnD
         configViewModel =
                 new ViewModelProvider(requireActivity()).get(ConfigViewModel.class);
         UIViewModel uiViewModel = new ViewModelProvider(requireActivity()).get(UIViewModel.class);
-
+        mPrefs = PreferenceManager.getDefaultSharedPreferences(getContext());
         levelViewModel =
                 new ViewModelProvider(requireActivity()).get(LevelViewModel.class);
         levelViewModel.getLevelX().observe(getViewLifecycleOwner(), this::setLevelX);
@@ -72,6 +74,9 @@ public class ConfigFragment extends Fragment implements UsbDeviceListAdapter.OnD
         searchBtn.setOnClickListener(v -> scanDevices());
         offsetBtn.setOnClickListener(v -> setOffset());
         uiViewModel.setActiveView(UIViewModel.CONFIG);
+
+        mInputOffsetX.setText(Integer.toString(mPrefs.getInt("offsetX", 0)));
+        mInputOffsetY.setText(Integer.toString(mPrefs.getInt("offsetY", 0)));
         return root;
     }
 
@@ -108,22 +113,21 @@ public class ConfigFragment extends Fragment implements UsbDeviceListAdapter.OnD
     }
 
     void setOffset() {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
-        prefs.edit()
+        mPrefs.edit()
                 .putInt("offsetX", Integer.parseInt(mInputOffsetX.getText().toString()))
                 .putInt("offsetY", Integer.parseInt(mInputOffsetY.getText().toString()))
                 .apply();
-        levelViewModel.setOffsetX((float) prefs.getInt("offsetX", 0));
-        levelViewModel.setOffsetY((float) prefs.getInt("offsetY", 0));
+        levelViewModel.setOffsetX(mPrefs.getInt("offsetX", 0));
+        levelViewModel.setOffsetY(mPrefs.getInt("offsetY", 0));
     }
 
-    private void setLevelX(Float value) {
-        float formatted = value < 180 ? value : value - 360;
-        mTextViewX.setText(String.format("%.0fº", formatted));
+    private void setLevelX(int value) {
+        int formatted = value < 180 ? value : value - 360;
+        mTextViewX.setText(Integer.toString(formatted));
     }
 
-    private void setLevelY(Float value) {
-        float formatted = value < 180 ? value : value - 360;
-        mTextViewY.setText(String.format("%.0fº", formatted));
+    private void setLevelY(int value) {
+        int formatted = value < 180 ? value : value - 360;
+        mTextViewY.setText(Integer.toString(formatted));
     }
 }

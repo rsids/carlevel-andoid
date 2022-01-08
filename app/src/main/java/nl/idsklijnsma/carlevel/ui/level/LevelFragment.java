@@ -23,8 +23,8 @@ public class LevelFragment extends Fragment {
     private ImageView mImgLevelX;
     private ImageView mImgLevelY;
 
-    private float offsetX = 0;
-    private float offsetY = 0;
+    private int offsetX = 0;
+    private int offsetY = 0;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -53,15 +53,15 @@ public class LevelFragment extends Fragment {
         mBinding = null;
     }
 
-    private void setLevelX(Float value) {
-        float formatted = (value < 180 ? value : value - 360) - offsetX;
-        mTextViewX.setText(String.format("%.0fº", formatted));
+    private void setLevelX(int value) {
+        int formatted = (value < 180 ? value : value - 360) - offsetX;
+        mTextViewX.setText(Integer.toString(formatted));
         mImgLevelX.setRotation(value - offsetX);
     }
 
-    private void setLevelY(Float value) {
-        float formatted = (value < 180 ? value : value - 360) - offsetY;
-        mTextViewY.setText(String.format("%.0fº", formatted));
+    private void setLevelY(int value) {
+        int formatted = (value < 180 ? value : value - 360) - offsetY;
+        mTextViewY.setText(Integer.toString(formatted));
         mImgLevelY.setRotation(value - offsetY);
     }
 }

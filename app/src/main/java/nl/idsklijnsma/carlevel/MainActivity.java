@@ -38,26 +38,25 @@ import java.nio.ByteBuffer;
 import nl.idsklijnsma.carlevel.databinding.ActivityMainBinding;
 import nl.idsklijnsma.carlevel.models.UsbItem;
 import nl.idsklijnsma.carlevel.ui.config.ConfigViewModel;
+import nl.idsklijnsma.carlevel.ui.incline.InclineViewModel;
 import nl.idsklijnsma.carlevel.ui.level.LevelViewModel;
 
 public class MainActivity extends AppCompatActivity implements SerialInputOutputManager.Listener {
-    private final ByteBuffer res = ByteBuffer.allocate(15);
+    private final ByteBuffer res = ByteBuffer.allocate(13);
 
     private enum UsbPermission {Unknown, Requested, Granted, Denied}
 
     private UIViewModel uiViewModel;
     private LevelViewModel levelViewModel;
-    private ConfigViewModel configViewModel;
+    private InclineViewModel inclineViewModel;
     private BroadcastReceiver broadcastReceiver;
-    private int deviceId, portNum, baudRate;
-    private boolean withIoManager = true;
+    private int baudRate;
     private boolean connected = false;
 
     private SerialInputOutputManager usbIoManager;
     private UsbSerialPort usbSerialPort;
     private UsbPermission usbPermission = UsbPermission.Unknown;
 
-    private NavController mNavController;
     private static final String INTENT_ACTION_GRANT_USB = BuildConfig.APPLICATION_ID + ".GRANT_USB";
 
     private static final String TAG = "CarLevelUSB";
@@ -91,12 +90,13 @@ public class MainActivity extends AppCompatActivity implements SerialInputOutput
 
         uiViewModel = new ViewModelProvider(this).get(UIViewModel.class);
         levelViewModel = new ViewModelProvider(this).get(LevelViewModel.class);
-        configViewModel = new ViewModelProvider(this).get(ConfigViewModel.class);
+        inclineViewModel = new ViewModelProvider(this).get(InclineViewModel.class);
+        ConfigViewModel configViewModel = new ViewModelProvider(this).get(ConfigViewModel.class);
         uiViewModel.getActiveView().observe(this, s -> mActiveView = s);
         configViewModel.selectedDevice().observe(this, this::setSelectedDevice);
 
-        levelViewModel.setOffsetX((float) prefs.getInt("offsetX", 0));
-        levelViewModel.setOffsetY((float) prefs.getInt("offsetY", 0));
+        levelViewModel.setOffsetX(prefs.getInt("offsetX", 0));
+        levelViewModel.setOffsetY(prefs.getInt("offsetY", 0));
 
         navView = binding.navView;
         // Passing each menu ID as a set of Ids because each
@@ -105,9 +105,13 @@ public class MainActivity extends AppCompatActivity implements SerialInputOutput
                 R.id.navigation_level, R.id.navigation_incline, R.id.navigation_config)
                 .build();
 
-        mNavController = Navigation.findNavController(this, R.id.nav_host_fragment_activity_main);
-        NavigationUI.setupActionBarWithNavController(this, mNavController, appBarConfiguration);
-        NavigationUI.setupWithNavController(navView, mNavController);
+        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_activity_main);
+        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
+        NavigationUI.setupWithNavController(navView, navController);
+
+        if (prefs.contains("device")) {
+            connect();
+        }
     }
 
     /**
@@ -126,8 +130,8 @@ public class MainActivity extends AppCompatActivity implements SerialInputOutput
 
     private void connect() {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-        deviceId = prefs.getInt("device", 0);
-        portNum = prefs.getInt("port", 0);
+        int deviceId = prefs.getInt("device", 0);
+        int portNum = prefs.getInt("port", 0);
         UsbDevice device = null;
         UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         for (UsbDevice v : usbManager.getDeviceList().values())
@@ -166,10 +170,8 @@ public class MainActivity extends AppCompatActivity implements SerialInputOutput
         try {
             usbSerialPort.open(usbConnection);
             usbSerialPort.setParameters(baudRate, 8, 1, UsbSerialPort.PARITY_NONE);
-            if (withIoManager) {
-                usbIoManager = new SerialInputOutputManager(usbSerialPort, this);
-                usbIoManager.start();
-            }
+            usbIoManager = new SerialInputOutputManager(usbSerialPort, this);
+            usbIoManager.start();
             status("connected");
             connected = true;
         } catch (Exception e) {
@@ -218,7 +220,9 @@ public class MainActivity extends AppCompatActivity implements SerialInputOutput
     @Override
     public void onUserLeaveHint() {
         if (mActiveView == UIViewModel.INCLINE) {
+            Log.i(TAG, "Hide menu");
             navView.setVisibility(View.GONE);
+
             Rational ratio
                     = new Rational(1, 1);
             PictureInPictureParams.Builder
@@ -235,13 +239,14 @@ public class MainActivity extends AppCompatActivity implements SerialInputOutput
     public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode, Configuration newConfig) {
         uiViewModel.setIsPip(isInPictureInPictureMode);
         if (!isInPictureInPictureMode) {
+            Log.i(TAG, "Show menu");
             navView.setVisibility(View.VISIBLE);
         }
     }
 
     @Override
     public void onNewData(byte[] data) {
-        for (int i = 0; i < data.length; i++) {
+        for (byte datum : data) {
             if (!res.hasRemaining()) {
                 try {
                     String value = new String(res.array(), "utf-8").trim();
@@ -251,7 +256,7 @@ public class MainActivity extends AppCompatActivity implements SerialInputOutput
                 }
                 res.clear();
             }
-            res.put(data[i]);
+            res.put(datum);
         }
 
     }
@@ -262,15 +267,16 @@ public class MainActivity extends AppCompatActivity implements SerialInputOutput
     }
 
     private void clearValues() {
-        levelViewModel.setLevelX(0f);
-        levelViewModel.setLevelY(0f);
+        levelViewModel.setLevelX(0);
+        levelViewModel.setLevelY(0);
         Log.d(TAG, "clearValues");
     }
 
     private void updateLevelValue(String value) {
         String[] values = value.split(";");
-        levelViewModel.setLevelX(Float.parseFloat(values[0]));
-        levelViewModel.setLevelY(Float.parseFloat(values[1]));
+        levelViewModel.setLevelY(Integer.parseInt(values[0]));
+        levelViewModel.setLevelX(Integer.parseInt(values[1]));
+        inclineViewModel.setIncline(Integer.toString(Integer.parseInt(values[2])));
         Log.i(TAG, "updateLevelValue " + value);
     }
 

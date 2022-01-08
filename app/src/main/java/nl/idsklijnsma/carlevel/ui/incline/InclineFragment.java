@@ -26,7 +26,7 @@ public class InclineFragment extends Fragment {
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        LevelViewModel levelViewModel = new ViewModelProvider(getActivity()).get(LevelViewModel.class);
+        InclineViewModel inclineViewModel = new ViewModelProvider(getActivity()).get(InclineViewModel.class);
 
         UIViewModel uiViewModel = new ViewModelProvider(requireActivity()).get(UIViewModel.class);
 
@@ -34,9 +34,8 @@ public class InclineFragment extends Fragment {
         View root = mBinding.getRoot();
         textView = mBinding.textIncline;
         inclineImage = mBinding.inclineImage;
-        levelViewModel.getLevelY().observe(getViewLifecycleOwner(), s -> {
-            double incline = Math.tan(Math.toRadians(s)) * 100;
-            textView.setText(String.format("%.0f", incline));
+        inclineViewModel.getIncline().observe(getViewLifecycleOwner(), s -> {
+            textView.setText(s);
         });
 
         uiViewModel.setActiveView(UIViewModel.INCLINE);

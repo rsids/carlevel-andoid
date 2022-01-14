@@ -128,13 +128,24 @@
             android:id="@+id/txtLevelX"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="16dp"
             android:layout_weight="1"
             android:lines="1"
             android:text=""
             app:layout_constraintBottom_toBottomOf="@+id/editTextOffsetX"
-            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/editTextOffsetX"
+            app:layout_constraintEnd_toStartOf="@+id/switchInvertX"
+            app:layout_constraintTop_toTopOf="@+id/editTextOffsetX"
+            app:layout_constraintVertical_bias="0.621" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchInvertX"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:text="@string/invert"
+            app:layout_constraintBottom_toBottomOf="@+id/editTextOffsetX"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/txtLevelX"
             app:layout_constraintTop_toTopOf="@+id/editTextOffsetX" />
 
         <com.google.android.material.textfield.TextInputLayout
@@ -167,8 +178,19 @@
             android:lines="1"
             android:text=""
             app:layout_constraintBottom_toBottomOf="@+id/editTextOffsetY"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/switchInvertY"
             app:layout_constraintStart_toEndOf="@+id/editTextOffsetY"
+            app:layout_constraintTop_toTopOf="@+id/editTextOffsetY" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchInvertY"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:text="@string/invert"
+            app:layout_constraintBottom_toBottomOf="@+id/editTextOffsetY"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/txtLevelY"
             app:layout_constraintTop_toTopOf="@+id/editTextOffsetY" />
 
 

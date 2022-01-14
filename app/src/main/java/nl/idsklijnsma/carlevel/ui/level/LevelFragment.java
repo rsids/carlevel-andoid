@@ -14,6 +14,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import nl.idsklijnsma.carlevel.UIViewModel;
 import nl.idsklijnsma.carlevel.databinding.FragmentLevelBinding;
+import nl.idsklijnsma.carlevel.ui.config.ConfigViewModel;
 
 public class LevelFragment extends Fragment {
 
@@ -23,12 +24,13 @@ public class LevelFragment extends Fragment {
     private ImageView mImgLevelX;
     private ImageView mImgLevelY;
 
-    private int offsetX = 0;
-    private int offsetY = 0;
+    private boolean isInvertedX = false;
+    private boolean isInvertedY = false;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         LevelViewModel levelViewModel = new ViewModelProvider(requireActivity()).get(LevelViewModel.class);
+        ConfigViewModel configViewModel = new ViewModelProvider(requireActivity()).get(ConfigViewModel.class);
 
         UIViewModel uiViewModel = new ViewModelProvider(requireActivity()).get(UIViewModel.class);
 
@@ -40,10 +42,11 @@ public class LevelFragment extends Fragment {
         mImgLevelY = mBinding.imgLevelY;
         levelViewModel.getLevelX().observe(getViewLifecycleOwner(), this::setLevelX);
         levelViewModel.getLevelY().observe(getViewLifecycleOwner(), this::setLevelY);
-        levelViewModel.getOffsetX().observe(getViewLifecycleOwner(), s -> offsetX = s);
-        levelViewModel.getOffsetY().observe(getViewLifecycleOwner(), s -> offsetY = s);
+        configViewModel.levelConfig().observe(getViewLifecycleOwner(), levelConfig -> {
+            isInvertedX = levelConfig.isInvertX();
+            isInvertedY = levelConfig.isInvertY();
+        });
         uiViewModel.setActiveView(UIViewModel.LEVEL);
-        Log.d("CARLVL", "onCreateView Level");
         return root;
     }
 
@@ -54,14 +57,16 @@ public class LevelFragment extends Fragment {
     }
 
     private void setLevelX(int value) {
-        int formatted = (value < 180 ? value : value - 360) - offsetX;
-        mTextViewX.setText(Integer.toString(formatted));
-        mImgLevelX.setRotation(value - offsetX);
+        int val = isInvertedX ? value * -1 : value;
+        Log.d("lvlF", String.format("XValue: %d, val: %d, inverted: %d", value, val, isInvertedX ? 1:0));
+        mTextViewX.setText(Integer.toString(val));
+        mImgLevelX.setRotation(val);
     }
 
     private void setLevelY(int value) {
-        int formatted = (value < 180 ? value : value - 360) - offsetY;
-        mTextViewY.setText(Integer.toString(formatted));
-        mImgLevelY.setRotation(value - offsetY);
+        int val = isInvertedY ? value * -1 : value;
+        Log.d("lvlF", String.format("YValue: %d, val: %d, inverted: %d", value, val, isInvertedY ? 1:0));
+        mTextViewY.setText(Integer.toString(val));
+        mImgLevelY.setRotation(val);
     }
 }

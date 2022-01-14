@@ -6,7 +6,7 @@ import androidx.lifecycle.ViewModel;
 
 public class InclineViewModel extends ViewModel {
 
-    private MutableLiveData<String> mIncline;
+    private final MutableLiveData<String> mIncline;
 
     public InclineViewModel() {
         mIncline = new MutableLiveData<>();

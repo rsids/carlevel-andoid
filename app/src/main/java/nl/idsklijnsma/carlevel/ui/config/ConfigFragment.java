@@ -10,9 +10,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.widget.SwitchCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -23,6 +25,7 @@ import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
 
 import java.util.ArrayList;
+import java.util.Locale;
 
 import nl.idsklijnsma.carlevel.UIViewModel;
 import nl.idsklijnsma.carlevel.UsbDeviceListAdapter;
@@ -41,6 +44,8 @@ public class ConfigFragment extends Fragment implements UsbDeviceListAdapter.OnD
     private TextView mTextViewX;
     private TextInputEditText mInputOffsetX;
     private TextInputEditText mInputOffsetY;
+    private SwitchCompat mInvertX;
+    private SwitchCompat mInvertY;
 
     private SharedPreferences mPrefs;
 
@@ -61,6 +66,8 @@ public class ConfigFragment extends Fragment implements UsbDeviceListAdapter.OnD
         mTextViewX = binding.txtLevelX;
         mInputOffsetX = binding.inputOffsetX;
         mTextViewY = binding.txtLevelY;
+        mInvertX = binding.switchInvertX;
+        mInvertY = binding.switchInvertY;
         mInputOffsetY = binding.inputOffsetY;
         RecyclerView mRecyclerView = binding.listDevices;
         mRecyclerView.setHasFixedSize(false);
@@ -73,10 +80,25 @@ public class ConfigFragment extends Fragment implements UsbDeviceListAdapter.OnD
         Button searchBtn = binding.btnSearch;
         searchBtn.setOnClickListener(v -> scanDevices());
         offsetBtn.setOnClickListener(v -> setOffset());
+        mInvertY.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            mPrefs.edit()
+                    .putBoolean("invertY", isChecked)
+                    .apply();
+            updateConfig();
+        });
+        mInvertX.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            mPrefs.edit()
+                    .putBoolean("invertX", isChecked)
+                    .apply();
+
+            updateConfig();
+        });
         uiViewModel.setActiveView(UIViewModel.CONFIG);
 
-        mInputOffsetX.setText(Integer.toString(mPrefs.getInt("offsetX", 0)));
-        mInputOffsetY.setText(Integer.toString(mPrefs.getInt("offsetY", 0)));
+        mInputOffsetX.setText(String.format(Locale.US, "%d", mPrefs.getInt("offsetX", 0)));
+        mInputOffsetY.setText(String.format(Locale.US, "%d", mPrefs.getInt("offsetY", 0)));
+        mInvertX.setChecked(mPrefs.getBoolean("invertX", false));
+        mInvertY.setChecked(mPrefs.getBoolean("invertY", false));
         return root;
     }
 
@@ -117,17 +139,23 @@ public class ConfigFragment extends Fragment implements UsbDeviceListAdapter.OnD
                 .putInt("offsetX", Integer.parseInt(mInputOffsetX.getText().toString()))
                 .putInt("offsetY", Integer.parseInt(mInputOffsetY.getText().toString()))
                 .apply();
-        levelViewModel.setOffsetX(mPrefs.getInt("offsetX", 0));
-        levelViewModel.setOffsetY(mPrefs.getInt("offsetY", 0));
+        updateConfig();
     }
 
     private void setLevelX(int value) {
-        int formatted = value < 180 ? value : value - 360;
-        mTextViewX.setText(Integer.toString(formatted));
+        mTextViewX.setText(Integer.toString(value));
     }
 
     private void setLevelY(int value) {
-        int formatted = value < 180 ? value : value - 360;
-        mTextViewY.setText(Integer.toString(formatted));
+        mTextViewY.setText(Integer.toString(value));
+    }
+
+    private void updateConfig() {
+        LevelConfig cfg = new LevelConfig(
+                mPrefs.getInt("offsetX", 0),
+                mPrefs.getInt("offsetY", 0),
+                mPrefs.getBoolean("invertX", false),
+                mPrefs.getBoolean("invertY", false));
+        configViewModel.setLevelConfig(cfg);
     }
 }

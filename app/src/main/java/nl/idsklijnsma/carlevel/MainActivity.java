@@ -34,15 +34,17 @@ import com.hoho.android.usbserial.util.SerialInputOutputManager;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
+import java.util.Locale;
 
 import nl.idsklijnsma.carlevel.databinding.ActivityMainBinding;
 import nl.idsklijnsma.carlevel.models.UsbItem;
 import nl.idsklijnsma.carlevel.ui.config.ConfigViewModel;
+import nl.idsklijnsma.carlevel.ui.config.LevelConfig;
 import nl.idsklijnsma.carlevel.ui.incline.InclineViewModel;
 import nl.idsklijnsma.carlevel.ui.level.LevelViewModel;
 
 public class MainActivity extends AppCompatActivity implements SerialInputOutputManager.Listener {
-    private final ByteBuffer res = ByteBuffer.allocate(13);
+    private final ByteBuffer res = ByteBuffer.allocate(5);
 
     private enum UsbPermission {Unknown, Requested, Granted, Denied}
 
@@ -94,9 +96,14 @@ public class MainActivity extends AppCompatActivity implements SerialInputOutput
         ConfigViewModel configViewModel = new ViewModelProvider(this).get(ConfigViewModel.class);
         uiViewModel.getActiveView().observe(this, s -> mActiveView = s);
         configViewModel.selectedDevice().observe(this, this::setSelectedDevice);
+        configViewModel.levelConfig().observe(this, this::updateConfig);
 
-        levelViewModel.setOffsetX(prefs.getInt("offsetX", 0));
-        levelViewModel.setOffsetY(prefs.getInt("offsetY", 0));
+        LevelConfig cfg = new LevelConfig(
+                prefs.getInt("offsetX", 0),
+                prefs.getInt("offsetY", 0),
+                prefs.getBoolean("invertX", false),
+                prefs.getBoolean("invertY", false));
+        configViewModel.setLevelConfig(cfg);
 
         navView = binding.navView;
         // Passing each menu ID as a set of Ids because each
@@ -114,28 +121,21 @@ public class MainActivity extends AppCompatActivity implements SerialInputOutput
         }
     }
 
-    /**
-     * Sets & stores the selected usb device
-     *
-     * @param item
-     */
-    private void setSelectedDevice(UsbItem item) {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-        prefs.edit()
-                .putInt("port", item.port)
-                .putInt("device", item.device.getDeviceId())
-                .apply();
-        connect();
+    private void clearValues() {
+        levelViewModel.setLevelX(0);
+        levelViewModel.setLevelY(0);
+        Log.d(TAG, "clearValues");
     }
 
     private void connect() {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-        int deviceId = prefs.getInt("device", 0);
+        int vendorId = prefs.getInt("vendorId", 0);
+        int productId = prefs.getInt("productId", 0);
         int portNum = prefs.getInt("port", 0);
         UsbDevice device = null;
         UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         for (UsbDevice v : usbManager.getDeviceList().values())
-            if (v.getDeviceId() == deviceId)
+            if (v.getVendorId() == vendorId && v.getProductId() == productId)
                 device = v;
         if (device == null) {
             status("connection failed: device not found");
@@ -194,6 +194,44 @@ public class MainActivity extends AppCompatActivity implements SerialInputOutput
         usbSerialPort = null;
     }
 
+    /**
+     * Sets & stores the selected usb device
+     *
+     * @param item
+     */
+    private void setSelectedDevice(UsbItem item) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        prefs.edit()
+                .putInt("port", item.port)
+                .putInt("vendorId", item.device.getVendorId())
+                .putInt("productId", item.device.getProductId())
+                .putInt("device", item.device.getDeviceId())
+                .apply();
+        connect();
+    }
+
+    private void status(String s) {
+        Log.i(TAG, s);
+    }
+
+    private void updateConfig(LevelConfig config) {
+        if (usbIoManager != null) {
+            byte a = (byte) 0x75;
+            a = (byte) (a | (config.isInvertX() ? 1 << 3 : 0));
+            a = (byte) (a | (config.isInvertY() ? 1 << 1 : 0));
+            Log.i(TAG, String.format("Writing %02x/%02x/%02x/%02x/%02x", a, (byte) config.getOffsetX(), (byte) config.getOffsetY(), 0, 0));
+            byte[] bytes = {a, (byte) config.getOffsetX(), (byte) config.getOffsetY(), 0, 0};
+            usbIoManager.writeAsync(bytes);
+        }
+    }
+
+    private void updateLevelValue(byte levelX, byte levelY, byte incline) {
+        levelViewModel.setLevelY((int) levelX);
+        levelViewModel.setLevelX((int) levelY);
+        inclineViewModel.setIncline(String.format(Locale.US, "%d", incline));
+        Log.d(TAG, String.format("updateLevelValue x: %d, y: %d, incline: %d", levelX, levelY, incline));
+    }
+
 
     @Override
     protected void onResume() {
@@ -247,12 +285,13 @@ public class MainActivity extends AppCompatActivity implements SerialInputOutput
     @Override
     public void onNewData(byte[] data) {
         for (byte datum : data) {
+            Log.d("USB-DATA", String.format("%02X", datum));
             if (!res.hasRemaining()) {
-                try {
-                    String value = new String(res.array(), "utf-8").trim();
-                    updateLevelValue(value);
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
+                if ((res.get(4) & (1 << 1)) > 0) {
+                    // Offset mode
+                    Log.i(TAG, String.format("OffsetX: %d, offsetY: %d", res.get(0), res.get(1)));
+                } else {
+                    updateLevelValue(res.get(0), res.get(1), res.get(2));
                 }
                 res.clear();
             }
@@ -266,20 +305,6 @@ public class MainActivity extends AppCompatActivity implements SerialInputOutput
 
     }
 
-    private void clearValues() {
-        levelViewModel.setLevelX(0);
-        levelViewModel.setLevelY(0);
-        Log.d(TAG, "clearValues");
-    }
-
-    private void updateLevelValue(String value) {
-        String[] values = value.split(";");
-        levelViewModel.setLevelY(Integer.parseInt(values[0]));
-        levelViewModel.setLevelX(Integer.parseInt(values[1]));
-        inclineViewModel.setIncline(Integer.toString(Integer.parseInt(values[2])));
-        Log.i(TAG, "updateLevelValue " + value);
-    }
-
 
     @Override
     protected void onNewIntent(Intent intent) {
@@ -287,10 +312,6 @@ public class MainActivity extends AppCompatActivity implements SerialInputOutput
             Log.d(TAG, "ON INTENT");
         }
         super.onNewIntent(intent);
-    }
-
-    private void status(String s) {
-        Log.i(TAG, s);
     }
 
 

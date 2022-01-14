@@ -44,10 +44,8 @@ public class LevelViewModel extends ViewModel {
         return mOffsetY;
     }
 
-    public void setOffsetX(Integer val) {
-        mOffsetX.postValue(val);
-    }
-    public void setOffsetY(Integer val) {
-        mOffsetY.postValue(val);
+    public void setOffsets(Integer x, Integer y) {
+        mOffsetX.postValue(x);
+        mOffsetY.postValue(y);
     }
 }

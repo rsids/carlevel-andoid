@@ -8,7 +8,7 @@
         <entry key="app/src/main/res/drawable/ic_incline_sign.xml" value="0.2916666666666667" />
         <entry key="app/src/main/res/drawable/ic_launcher_background.xml" value="0.3203125" />
         <entry key="app/src/main/res/layout-land/fragment_incline.xml" value="0.20572916666666666" />
-        <entry key="app/src/main/res/layout-land/fragment_level.xml" value="0.30572916666666666" />
+        <entry key="app/src/main/res/layout-land/fragment_level.xml" value="0.5" />
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.17889492753623187" />
         <entry key="app/src/main/res/layout/bluetooth_menu_item.xml" value="0.26222826086956524" />
         <entry key="app/src/main/res/layout/fragment_config.xml" value="0.67" />

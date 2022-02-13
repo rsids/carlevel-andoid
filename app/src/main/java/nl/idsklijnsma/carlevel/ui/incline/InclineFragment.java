@@ -50,17 +50,14 @@ public class InclineFragment extends Fragment {
     }
 
     private void setPipMode(Boolean isPip) {
-        ActionBar actionBar = ((AppCompatActivity) getActivity()).getSupportActionBar();
         ConstraintLayout.LayoutParams params = new ConstraintLayout.LayoutParams(
                 ConstraintLayout.LayoutParams.MATCH_PARENT,
                 ConstraintLayout.LayoutParams.MATCH_PARENT);
         if (isPip) {
-            actionBar.hide();
             textView.setTextSize(20);
             textView.setTranslationY(-16);
             params.setMargins(0,0,0,0);
         } else {
-            actionBar.show();
             textView.setTextSize(50);
             textView.setTranslationY(0);
             params.setMargins(8,8,8,8);

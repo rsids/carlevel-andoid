@@ -59,14 +59,14 @@ public class LevelFragment extends Fragment {
     private void setLevelX(int value) {
         int val = isInvertedX ? value * -1 : value;
         Log.d("lvlF", String.format("XValue: %d, val: %d, inverted: %d", value, val, isInvertedX ? 1:0));
-        mTextViewX.setText(Integer.toString(val));
+        mTextViewX.setText(val + "º");
         mImgLevelX.setRotation(val);
     }
 
     private void setLevelY(int value) {
         int val = isInvertedY ? value * -1 : value;
         Log.d("lvlF", String.format("YValue: %d, val: %d, inverted: %d", value, val, isInvertedY ? 1:0));
-        mTextViewY.setText(Integer.toString(val));
+        mTextViewY.setText(val + "º");
         mImgLevelY.setRotation(val);
     }
 }

@@ -17,6 +17,7 @@ import android.util.Log;
 import android.util.Rational;
 import android.view.View;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
@@ -32,7 +33,8 @@ import com.hoho.android.usbserial.driver.UsbSerialProber;
 import com.hoho.android.usbserial.util.SerialInputOutputManager;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.util.Locale;
 
@@ -302,7 +304,12 @@ public class MainActivity extends AppCompatActivity implements SerialInputOutput
 
     @Override
     public void onRunError(Exception e) {
-
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        //noinspection ThrowableResultOfMethodCallIgnored
+        e.printStackTrace(pw);
+        String stackTrace = sw.toString();
+        new AlertDialog.Builder(getBaseContext()).setTitle("onRunError").setMessage(stackTrace);
     }
 
 

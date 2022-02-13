@@ -10,7 +10,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -37,15 +36,12 @@ public class ConfigFragment extends Fragment implements UsbDeviceListAdapter.OnD
 
     private ConfigViewModel configViewModel;
     private FragmentConfigBinding binding;
-    private LevelViewModel levelViewModel;
 
     private UsbDeviceListAdapter mAdapter;
     private TextView mTextViewY;
     private TextView mTextViewX;
     private TextInputEditText mInputOffsetX;
     private TextInputEditText mInputOffsetY;
-    private SwitchCompat mInvertX;
-    private SwitchCompat mInvertY;
 
     private SharedPreferences mPrefs;
 
@@ -57,8 +53,7 @@ public class ConfigFragment extends Fragment implements UsbDeviceListAdapter.OnD
                 new ViewModelProvider(requireActivity()).get(ConfigViewModel.class);
         UIViewModel uiViewModel = new ViewModelProvider(requireActivity()).get(UIViewModel.class);
         mPrefs = PreferenceManager.getDefaultSharedPreferences(getContext());
-        levelViewModel =
-                new ViewModelProvider(requireActivity()).get(LevelViewModel.class);
+        LevelViewModel levelViewModel = new ViewModelProvider(requireActivity()).get(LevelViewModel.class);
         levelViewModel.getLevelX().observe(getViewLifecycleOwner(), this::setLevelX);
         levelViewModel.getLevelY().observe(getViewLifecycleOwner(), this::setLevelY);
 
@@ -66,8 +61,8 @@ public class ConfigFragment extends Fragment implements UsbDeviceListAdapter.OnD
         mTextViewX = binding.txtLevelX;
         mInputOffsetX = binding.inputOffsetX;
         mTextViewY = binding.txtLevelY;
-        mInvertX = binding.switchInvertX;
-        mInvertY = binding.switchInvertY;
+        SwitchCompat mInvertX = binding.switchInvertX;
+        SwitchCompat mInvertY = binding.switchInvertY;
         mInputOffsetY = binding.inputOffsetY;
         RecyclerView mRecyclerView = binding.listDevices;
         mRecyclerView.setHasFixedSize(false);
@@ -119,7 +114,7 @@ public class ConfigFragment extends Fragment implements UsbDeviceListAdapter.OnD
     }
 
     void scanDevices() {
-        UsbManager usbManager = (UsbManager) getActivity().getSystemService(Context.USB_SERVICE);
+        UsbManager usbManager = (UsbManager) requireActivity().getSystemService(Context.USB_SERVICE);
         UsbSerialProber usbDefaultProber = UsbSerialProber.getDefaultProber();
         listItems.clear();
         for (UsbDevice device : usbManager.getDeviceList().values()) {

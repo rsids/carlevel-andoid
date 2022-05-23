@@ -28,6 +28,7 @@ android {
     buildFeatures {
         viewBinding true
     }
+    namespace 'nl.idsklijnsma.carlevel'
 }
 
 dependencies {

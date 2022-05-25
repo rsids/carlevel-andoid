@@ -9,38 +9,59 @@
     android:layout_height="match_parent"
     tools:context=".ui.incline.InclineFragment">
 
-    <ImageView
-        android:id="@+id/inclineImage"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginBottom="?attr/actionBarSize"
-        android:contentDescription="@string/incline_sign"
-        android:scaleType="fitCenter"
-        android:src="@drawable/ic_incline_sign"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="1.0" />
-
-    <TextView
-        android:id="@+id/text_incline"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/textContainer"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="16dp"
         android:layout_marginTop="8dp"
-        android:fontFamily="sans-serif-medium"
-        android:rotation="-28"
-        android:textAlignment="viewEnd"
-        android:textColor="#2A2D2F"
-        android:textSize="60sp"
-        app:layout_constraintBottom_toBottomOf="@id/inclineImage"
-        app:layout_constraintStart_toStartOf="@id/inclineImage"
-        app:layout_constraintTop_toTopOf="@+id/inclineImage"
-        app:layout_constraintVertical_bias="0.95"
-        app:layout_constraintWidth_percent="0.50" />
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="?attr/actionBarSize"
+        android:background="#34FFEB3B"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageView
+            android:id="@+id/inclineImage"
+            android:layout_marginStart="0dp"
+            android:layout_marginTop="0dp"
+            android:layout_marginEnd="0dp"
+            android:layout_height="0dp"
+            android:layout_width="0dp"
+            android:layout_marginBottom="0dp"
+            android:contentDescription="@string/incline_sign"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_incline_sign"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"/>
+
+        <TextView
+            android:id="@+id/text_incline"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:background="#7A3F51B5"
+            android:fontFamily="sans-serif-medium"
+            android:rotation="-28"
+            android:textAlignment="viewEnd"
+            android:textColor="#2A2D2F"
+            android:textSize="80sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.45"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.58"
+            app:layout_constraintWidth_percent="0.50" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+
 </androidx.constraintlayout.widget.ConstraintLayout>

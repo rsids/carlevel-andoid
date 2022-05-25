@@ -6,18 +6,18 @@ import androidx.lifecycle.ViewModel;
 
 public class InclineViewModel extends ViewModel {
 
-    private final MutableLiveData<String> mIncline;
+    private final MutableLiveData<Integer> mIncline;
 
     public InclineViewModel() {
         mIncline = new MutableLiveData<>();
-        mIncline.setValue("0");
+        mIncline.setValue(0);
     }
 
-    public LiveData<String> getIncline() {
+    public LiveData<Integer> getIncline() {
         return mIncline;
     }
 
-    public void setIncline(String val) {
+    public void setIncline(Integer val) {
         mIncline.postValue(val);
     }
 }

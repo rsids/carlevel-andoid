@@ -231,7 +231,7 @@ public class MainActivity extends AppCompatActivity implements SerialInputOutput
     private void updateLevelValue(byte levelX, byte levelY, byte incline) {
         levelViewModel.setLevelY((int) levelX);
         levelViewModel.setLevelX((int) levelY);
-        inclineViewModel.setIncline(String.format(Locale.US, "%d", incline));
+        inclineViewModel.setIncline((int) incline);
         Log.d(TAG, String.format("updateLevelValue x: %d, y: %d, incline: %d", levelX, levelY, incline));
     }
 

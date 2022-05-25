@@ -1,5 +1,6 @@
 package nl.idsklijnsma.carlevel.ui.incline;
 
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,6 +17,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import nl.idsklijnsma.carlevel.UIViewModel;
 import nl.idsklijnsma.carlevel.databinding.FragmentInclineBinding;
+import nl.idsklijnsma.carlevel.ui.config.ConfigViewModel;
 import nl.idsklijnsma.carlevel.ui.level.LevelViewModel;
 
 public class InclineFragment extends Fragment {
@@ -23,10 +25,12 @@ public class InclineFragment extends Fragment {
     private FragmentInclineBinding mBinding;
     private TextView textView;
     private ImageView inclineImage;
+    private boolean isInvertedY = false;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         InclineViewModel inclineViewModel = new ViewModelProvider(getActivity()).get(InclineViewModel.class);
+        ConfigViewModel configViewModel = new ViewModelProvider(requireActivity()).get(ConfigViewModel.class);
 
         UIViewModel uiViewModel = new ViewModelProvider(requireActivity()).get(UIViewModel.class);
 
@@ -34,13 +38,20 @@ public class InclineFragment extends Fragment {
         View root = mBinding.getRoot();
         textView = mBinding.textIncline;
         inclineImage = mBinding.inclineImage;
-        inclineViewModel.getIncline().observe(getViewLifecycleOwner(), s -> {
-            textView.setText(s);
+        inclineViewModel.getIncline().observe(getViewLifecycleOwner(),this::setIncline);
+        configViewModel.levelConfig().observe(getViewLifecycleOwner(), levelConfig -> {
+            isInvertedY = levelConfig.isInvertY();
         });
-
         uiViewModel.setActiveView(UIViewModel.INCLINE);
         uiViewModel.getIsPip().observe(getViewLifecycleOwner(), this::setPipMode);
+
         return root;
+    }
+
+
+    private void setIncline(int value) {
+        int val = isInvertedY ? value * -1 : value;
+        textView.setText(val + "");
     }
 
     @Override
@@ -58,11 +69,12 @@ public class InclineFragment extends Fragment {
             textView.setTranslationY(-16);
             params.setMargins(0,0,0,0);
         } else {
-            textView.setTextSize(50);
+            textView.setTextSize(54);
             textView.setTranslationY(0);
             params.setMargins(8,8,8,8);
         }
         inclineImage.setLayoutParams(params);
     }
+
 
 }

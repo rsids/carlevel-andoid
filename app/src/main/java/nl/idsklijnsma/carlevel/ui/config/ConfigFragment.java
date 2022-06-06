@@ -1,9 +1,11 @@
 package nl.idsklijnsma.carlevel.ui.config;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.view.LayoutInflater;
@@ -26,6 +28,7 @@ import com.hoho.android.usbserial.driver.UsbSerialProber;
 import java.util.ArrayList;
 import java.util.Locale;
 
+import nl.idsklijnsma.carlevel.R;
 import nl.idsklijnsma.carlevel.UIViewModel;
 import nl.idsklijnsma.carlevel.UsbDeviceListAdapter;
 import nl.idsklijnsma.carlevel.databinding.FragmentConfigBinding;
@@ -73,8 +76,10 @@ public class ConfigFragment extends Fragment implements UsbDeviceListAdapter.OnD
 
         Button offsetBtn = binding.btnZero;
         Button searchBtn = binding.btnSearch;
+        Button privacyBtn = binding.btnPrivacy;
         searchBtn.setOnClickListener(v -> scanDevices());
         offsetBtn.setOnClickListener(v -> setOffset());
+                privacyBtn.setOnClickListener(v -> gotoPrivacyPolicy());
         mInvertY.setOnCheckedChangeListener((buttonView, isChecked) -> {
             mPrefs.edit()
                     .putBoolean("invertY", isChecked)
@@ -135,6 +140,11 @@ public class ConfigFragment extends Fragment implements UsbDeviceListAdapter.OnD
                 .putInt("offsetY", Integer.parseInt(mInputOffsetY.getText().toString()))
                 .apply();
         updateConfig();
+    }
+
+    void gotoPrivacyPolicy() {
+        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.privacy_policy_url)));
+        startActivity(browserIntent);
     }
 
     private void setLevelX(int value) {

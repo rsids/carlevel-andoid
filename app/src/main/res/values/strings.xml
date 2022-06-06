@@ -22,4 +22,6 @@
     <string name="search">Search</string>
     <string name="unknown_device">Unknown USB Device</string>
     <string name="invert">Invert</string>
+    <string name="privacy_policy">Privacy Policy</string>
+    <string name="privacy_policy_url">https://privacy.idsklijnsma.nl/</string>
 </resources>

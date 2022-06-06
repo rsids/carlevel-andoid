@@ -1,22 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/incline"
-    android:tag="INCLINE"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@android:color/transparent"
+    android:tag="INCLINE"
     tools:context=".ui.incline.InclineFragment">
 
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/textContainer"
+        android:id="@+id/centeredContainer"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginStart="16dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="?attr/actionBarSize"
+        android:background="@android:color/transparent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintDimensionRatio="1:1"
         app:layout_constraintEnd_toEndOf="parent"
@@ -25,20 +26,17 @@
 
         <ImageView
             android:id="@+id/inclineImage"
-            android:layout_marginStart="0dp"
-            android:layout_marginTop="0dp"
-            android:layout_marginEnd="0dp"
-            android:layout_height="0dp"
             android:layout_width="0dp"
-            android:layout_marginBottom="0dp"
+            android:layout_height="0dp"
+            android:background="@android:color/transparent"
             android:contentDescription="@string/incline_sign"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_incline_sign"
-            app:layout_constraintDimensionRatio="1:1"
             app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintDimensionRatio="1:1"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"/>
+            app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
             android:id="@+id/text_incline"
@@ -50,7 +48,7 @@
             android:rotation="-28"
             android:textAlignment="viewEnd"
             android:textColor="#2A2D2F"
-            android:textSize="80sp"
+            android:textSize="54sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.45"

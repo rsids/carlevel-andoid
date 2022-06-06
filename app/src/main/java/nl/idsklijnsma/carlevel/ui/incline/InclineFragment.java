@@ -24,7 +24,7 @@ public class InclineFragment extends Fragment {
 
     private FragmentInclineBinding mBinding;
     private TextView textView;
-    private ImageView inclineImage;
+    private ConstraintLayout centeredContainer;
     private boolean isInvertedY = false;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -37,7 +37,7 @@ public class InclineFragment extends Fragment {
         mBinding = FragmentInclineBinding.inflate(inflater, container, false);
         View root = mBinding.getRoot();
         textView = mBinding.textIncline;
-        inclineImage = mBinding.inclineImage;
+        centeredContainer = mBinding.centeredContainer;
         inclineViewModel.getIncline().observe(getViewLifecycleOwner(),this::setIncline);
         configViewModel.levelConfig().observe(getViewLifecycleOwner(), levelConfig -> {
             isInvertedY = levelConfig.isInvertY();
@@ -66,14 +66,14 @@ public class InclineFragment extends Fragment {
                 ConstraintLayout.LayoutParams.MATCH_PARENT);
         if (isPip) {
             textView.setTextSize(20);
-            textView.setTranslationY(-16);
+//            textView.setTranslationY(-16);
             params.setMargins(0,0,0,0);
         } else {
             textView.setTextSize(54);
             textView.setTranslationY(0);
-            params.setMargins(8,8,8,8);
+            params.setMargins(16,8,16,8);
         }
-        inclineImage.setLayoutParams(params);
+        centeredContainer.setLayoutParams(params);
     }
 
 

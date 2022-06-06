@@ -261,9 +261,6 @@ public class MainActivity extends AppCompatActivity implements SerialInputOutput
     @Override
     public void onUserLeaveHint() {
         if (mActiveView == UIViewModel.INCLINE) {
-            Log.i(TAG, "Hide menu");
-            navView.setVisibility(View.GONE);
-
             Rational ratio
                     = new Rational(1, 1);
             PictureInPictureParams.Builder
@@ -280,8 +277,9 @@ public class MainActivity extends AppCompatActivity implements SerialInputOutput
     public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode, Configuration newConfig) {
         uiViewModel.setIsPip(isInPictureInPictureMode);
         if (!isInPictureInPictureMode) {
-            Log.i(TAG, "Show menu");
             navView.setVisibility(View.VISIBLE);
+        } else {
+            navView.setVisibility(View.GONE);
         }
     }
 
